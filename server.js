@@ -56,6 +56,11 @@ app.use('/upload', uploadRoutes);
 app.use('/email', emailRoutes);
 app.use('/sms', smsRoutes);
 
+// Import voice routes
+const voiceRoutes = require('./routes/voice');
+app.use('/voice', voiceRoutes);
+
+
 // VOICE Routes
 // Twilio Client Access Token Endpoint
 app.get('/token', callController.generateAccessToken);

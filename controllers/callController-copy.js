@@ -196,42 +196,27 @@ exports.outboundCallTwiML = (req, res) => {
  * @param {object} req - The request object from Express (should contain 'to' in req.body).
  * @param {object} res - The response object from Express.
  */
+
+
 exports.makeCall = async (req, res) => {
-    const { to } = req.body; // Recipient number
+  const { to } = req.body;
 
-    if (!to) {
-        return res.status(400).json({ success: false, message: 'Recipient number is required.' });
-    }
+  if (!to) {
+    return res.status(400).json({ error: "Missing 'to' number." });
+  }
 
-    try {
-        const call = await client.calls.create({
-            // The URL Twilio will request to get TwiML instructions for this call.
-            url: `https://c58e-158-62-5-231.ngrok-free.app/voice-outbound-twiml`,
-            to: to,
-            from: twilioPhoneNumber
-        });
+  try {
+    const call = await client.calls.create({
+      from: twilioPhoneNumber,
+      to: to,
+      twiml: '<Response><Say>Ahoy, World! This is a call from your Omni Channel app!</Say></Response>'
+    });
 
-        // Log the call entry in our in-memory storage.
-        const newCallEntry = {
-            type: 'outgoing',
-            to: to,
-            from: twilioPhoneNumber,
-            callSid: call.sid,
-            status: call.status,
-            startTime: null,
-            endTime: null,
-            duration: 0,
-            timestamp: new Date().toLocaleString()
-        };
-        activeCalls.set(call.sid, newCallEntry);
-        callLogs.push(newCallEntry);
-
-        console.log(`Server-initiated call to ${to} (Call SID: ${call.sid}, Status: ${call.status})`);
-        res.status(200).json({ success: true, message: 'Server-initiated call successfully!', callSid: call.sid });
-    } catch (error) {
-        console.error(`Error initiating server-side call to ${to}:`, error);
-        res.status(500).json({ success: false, message: 'Failed to initiate server-side call.', error: error.message });
-    }
+    res.json({ success: true, callSid: call.sid });
+  } catch (error) {
+    console.error("Error making call:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 /**

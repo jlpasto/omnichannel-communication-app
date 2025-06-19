@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Call App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6; /* Light gray background */
+        }
+        .dial-pad-button {
+            @apply flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-800 text-2xl font-semibold w-16 h-16 rounded-full shadow-md transition duration-200 ease-in-out;
+        }
+        .dial-pad-button:active {
+            @apply bg-gray-400 transform scale-95;
+        }
+        .message-box {
+            @apply p-3 rounded-lg text-sm text-center font-medium;
+        }
+        .success-message {
+            @apply bg-green-100 text-green-800;
+        }
+        .error-message {
+            @apply bg-red-100 text-red-800;
+        }
+        .info-message {
+            @apply bg-blue-100 text-blue-800;
+        }
+        .warning-message {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+        }
+        /* Hidden by default */
+        .hidden {
+            display: none;
+        }
+        .call-log-card {
+            background-color: #f8fafc; /* Light light gray */
+            border-left: 5px solid #a78bfa; /* Purple border */
+        }
+        .incoming-call-log-card {
+            border-left-color: #10b981; /* Green for incoming */
+        }
+        .outgoing-call-log-card {
+            border-left-color: #3b82f6; /* Blue for outgoing */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="navbar"></div>
+    <br>
+    <div class="flex justify-center">
+    <div class="w-full max-w-2xl bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Voice Call Interface</h1>
+
+        <!-- Twilio Client Device Status -->
+        <div class="text-center mb-6">
+            <p class="text-lg font-medium text-gray-700">Twilio Device Status: <span id="deviceStatus" class="font-bold text-red-500">Offline</span></p>
+            <button id="registerDeviceButton" class="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                Register Device
+            </button>
+        </div>
+
+        <!-- Dial Pad Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Make a Call</h2>
+            <input type="text" id="dialInput" class="w-full px-4 py-3 mb-4 text-center text-2xl font-mono border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="+1XXXXXXXXXX">
+
+            <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+                <button class="dial-pad-button" data-value="1">1</button>
+                <button class="dial-pad-button" data-value="2">2<span class="text-xs">ABC</span></button>
+                <button class="dial-pad-button" data-value="3">3<span class="text-xs">DEF</span></button>
+                <button class="dial-pad-button" data-value="4">4<span class="text-xs">GHI</span></button>
+                <button class="dial-pad-button" data-value="5">5<span class="text-xs">JKL</span></button>
+                <button class="dial-pad-button" data-value="6">6<span class="text-xs">MNO</span></button>
+                <button class="dial-pad-button" data-value="7">7<span class="text-xs">PQRS</span></button>
+                <button class="dial-pad-button" data-value="8">8<span class="text-xs">TUV</span></button>
+                <button class="dial-pad-button" data-value="9">9<span class="text-xs">WXYZ</span></button>
+                <button class="dial-pad-button" data-value="*">*</button>
+                <button class="dial-pad-button" data-value="0">0</button>
+                <button class="dial-pad-button" data-value="#">#</button>
+            </div>
+
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="makeCallButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" disabled>
+                    Call
+                </button>
+                <button id="endCallButton" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 hidden" disabled>
+                    End Call
+                </button>
+            </div>
+            <div id="callStatusMessage" class="message-box mt-4 hidden"></div>
+            <div id="callDuration" class="text-lg font-medium text-gray-700 text-center mt-2 hidden">
+                Duration: <span id="durationTime">00:00</span>
+            </div>
+        </div>
+
+        <!-- Call Logs Section -->
+        <div class="mt-10">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Call History</h2>
+            <button id="refreshCallLogsButton" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 mb-4">
+                Refresh Call History
+            </button>
+            <div id="callLogsContainer" class="space-y-4">
+                <p class="text-center text-gray-500">Loading call logs...</p>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Incoming Call Modal (Real-time via Twilio Client SDK) -->
+    <div id="incomingCallModal" class="modal-overlay hidden">
+        <div class="modal-content border-t-8 border-green-500">
+            <h3 class="text-3xl font-bold text-gray-800 mb-4">Incoming Call!</h3>
+            <p class="text-xl text-gray-600 mb-2">From: <span id="incomingCallFrom" class="font-semibold text-green-700"></span></p>
+            <p class="text-lg text-gray-500 mb-4">Status: <span id="incomingCallStatus" class="font-semibold">Ringing...</span></p>
+            <div class="flex justify-center space-x-4 mt-4">
+                <button id="answerIncomingCallButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    Answer
+                </button>
+                <button id="rejectIncomingCallButton" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    Reject
+                </button>
+            </div>
+            <p class="text-gray-500 text-xs mt-4">
+                This call is handled by Twilio Client SDK in your browser.
+            </p>
+        </div>
+    </div>
+
+    <!-- Active Call Modal (for Outgoing/Answered Calls) -->
+    <div id="activeCallModal" class="modal-overlay hidden">
+        <div class="modal-content border-t-8 border-blue-500">
+            <h3 class="text-3xl font-bold text-gray-800 mb-4">Active Call</h3>
+            <p class="text-xl text-gray-600 mb-2">With: <span id="activeCallParty" class="font-semibold text-blue-700"></span></p>
+            <p class="text-lg text-gray-500 mb-4">Status: <span id="activeCallStatus" class="font-semibold">Connected</span></p>
+            <p class="text-lg font-medium text-gray-700 mb-4">Duration: <span id="activeCallDurationTime">00:00</span></p>
+            <button id="disconnectActiveCallButton" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                End Call
+            </button>
+        </div>
+    </div>
+
+    <!-- Twilio Client SDK -->
+    <script src="//cdn.jsdelivr.net/npm/twilio-client/dist/twilio.min.js"></script>
+    <script src="/js/navbar.js"></script>
+    <script>
+        const dialInput = document.getElementById('dialInput');
+        const dialPadButtons = document.querySelectorAll('.dial-pad-button');
+        const makeCallButton = document.getElementById('makeCallButton');
+        const endCallButton = document.getElementById('endCallButton'); // This will now control Device.disconnect()
+        const callStatusMessage = document.getElementById('callStatusMessage');
+        const callDurationDisplay = document.getElementById('callDuration');
+        const durationTime = document.getElementById('durationTime');
+        const callLogsContainer = document.getElementById('callLogsContainer');
+        const refreshCallLogsButton = document.getElementById('refreshCallLogsButton');
+        const deviceStatusSpan = document.getElementById('deviceStatus');
+        const registerDeviceButton = document.getElementById('registerDeviceButton');
+
+        // Incoming Call Modal elements
+        const incomingCallModal = document.getElementById('incomingCallModal');
+        const incomingCallFrom = document.getElementById('incomingCallFrom');
+        const incomingCallStatus = document.getElementById('incomingCallStatus'); // 'Ringing...'
+        const answerIncomingCallButton = document.getElementById('answerIncomingCallButton');
+        const rejectIncomingCallButton = document.getElementById('rejectIncomingCallButton');
+
+        // Active Call Modal elements (for both outgoing and answered incoming calls)
+        const activeCallModal = document.getElementById('activeCallModal');
+        const activeCallParty = document.getElementById('activeCallParty');
+        const activeCallStatus = document.getElementById('activeCallStatus');
+        const activeCallDurationTime = document.getElementById('activeCallDurationTime');
+        const disconnectActiveCallButton = document.getElementById('disconnectActiveCallButton');
+
+
+        let activeTwilioConnection = null; // Stores the active Twilio.Connection object
+        let callTimerInterval = null;
+        let callStartTime = 0;
+        let incomingTwilioConnection = null; // Stores the incoming Twilio.Connection object
+
+
+        /**
+         * Clears all message box styles and hides the box.
+         */
+        function clearMessageBox() {
+            callStatusMessage.classList.add('hidden');
+            callStatusMessage.classList.remove('success-message', 'error-message', 'info-message', 'warning-message');
+            callStatusMessage.textContent = '';
+        }
+
+        /**
+         * Displays a message in the call status box.
+         * @param {string} message - The message to display.
+         * @param {string} type - 'success', 'error', 'info', 'warning'.
+         */
+        function showCallStatus(message, type) {
+            clearMessageBox();
+            callStatusMessage.textContent = message;
+            callStatusMessage.classList.remove('hidden');
+            callStatusMessage.classList.add(`${type}-message`);
+        }
+
+        /**
+         * Starts the call duration timer.
+         */
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callDurationDisplay.classList.remove('hidden'); // Main UI display
+            activeCallModal.classList.remove('hidden'); // Show active call modal
+            activeCallStatus.textContent = 'Connected';
+
+            if (callTimerInterval) clearInterval(callTimerInterval); // Clear any existing timer
+
+            callTimerInterval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+                const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+                durationTime.textContent = `${minutes}:${seconds}`;
+                activeCallDurationTime.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        /**
+         * Stops the call duration timer.
+         */
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callDurationDisplay.classList.add('hidden');
+            durationTime.textContent = '00:00';
+            activeCallDurationTime.textContent = '00:00'; // Reset modal duration
+        }
+
+        /**
+         * Resets the UI after a call ends or fails.
+         */
+        function resetCallUI() {
+            activeTwilioConnection = null;
+            incomingTwilioConnection = null;
+            stopCallTimer();
+            // Check device status to correctly enable/disable buttons
+            if (Twilio.Device && Twilio.Device.status() === 'ready') {
+                makeCallButton.disabled = false;
+                makeCallButton.classList.remove('hidden');
+            } else {
+                makeCallButton.disabled = true;
+                makeCallButton.classList.add('hidden');
+            }
+            endCallButton.classList.add('hidden');
+            clearMessageBox();
+            dialInput.value = ''; // Clear input after call
+            incomingCallModal.classList.add('hidden'); // Hide incoming modal
+            activeCallModal.classList.add('hidden'); // Hide active call modal
+            fetchCallLogs(); // Refresh logs after a call
+        }
+
+
+        // Dial pad button click handler
+        dialPadButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                dialInput.value += button.dataset.value;
+            });
+        });
+
+        // --- Twilio Client SDK Integration ---
+
+        // Fetch Access Token and Initialize Twilio.Device
+        async function initializeTwilioDevice() {
+            try {
+                // Request microphone permission first
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Microphone permission granted.');
+
+                const response = await fetch('/token');
+                const data = await response.json();
+                console.log('Fetched token and identity:', data.identity);
+
+                Twilio.Device.setup(data.token);
+                deviceStatusSpan.textContent = 'Connecting...';
+                deviceStatusSpan.classList.remove('text-red-500');
+                deviceStatusSpan.classList.add('text-yellow-500');
+
+            } catch (error) {
+                console.error('Error fetching token or setting up Twilio Device:', error);
+                deviceStatusSpan.textContent = 'Error';
+                deviceStatusSpan.classList.remove('text-yellow-500');
+                deviceStatusSpan.classList.add('text-red-500');
+                makeCallButton.disabled = true;
+                showCallStatus('Failed to initialize Twilio Device. Check console (microphone permission?).', 'error');
+            }
+        }
+
+        // Event Listeners for Twilio.Device
+        Twilio.Device.on('ready', (device) => {
+            deviceStatusSpan.textContent = 'Ready';
+            deviceStatusSpan.classList.remove('text-yellow-500', 'text-red-500');
+            deviceStatusSpan.classList.add('text-green-500');
+            makeCallButton.disabled = false; // Enable make call button
+            makeCallButton.classList.remove('hidden'); // Ensure make call button is visible
+            showCallStatus('Twilio Device is ready!', 'success');
+            console.log('Twilio.Device is ready!');
+        });
+
+        Twilio.Device.on('error', (error) => {
+            deviceStatusSpan.textContent = 'Error';
+            deviceStatusSpan.classList.remove('text-green-500', 'text-yellow-500');
+            deviceStatusSpan.classList.add('text-red-500');
+            makeCallButton.disabled = true; // Disable make call button on error
+            showCallStatus(`Twilio Device error: ${error.message}`, 'error');
+            console.error('Twilio.Device Error:', error);
+            resetCallUI(); // Reset UI on device error
+        });
+
+        Twilio.Device.on('offline', () => {
+            deviceStatusSpan.textContent = 'Offline';
+            deviceStatusSpan.classList.remove('text-green-500', 'text-yellow-500');
+            deviceStatusSpan.classList.add('text-red-500');
+            makeCallButton.disabled = true; // Disable make call button
+            makeCallButton.classList.add('hidden'); // Hide make call button
+            endCallButton.classList.add('hidden'); // Hide end call button
+            showCallStatus('Twilio Device is offline.', 'warning');
+            console.log('Twilio.Device is offline.');
+            resetCallUI(); // Reset UI when device goes offline
+        });
+
+        Twilio.Device.on('incoming', (connection) => {
+            console.log('Incoming call from:', connection.parameters.From);
+            incomingTwilioConnection = connection;
+
+            // Stop any ringing sounds if you were playing them
+            // Twilio.Device.incoming(connection) will automatically play a ringtone
+
+            incomingCallFrom.textContent = connection.parameters.From;
+            incomingCallStatus.textContent = 'Ringing...';
+            incomingCallModal.classList.remove('hidden'); // Show incoming call modal
+
+            // Event listeners for the incoming connection
+            connection.on('accept', () => {
+                console.log('Incoming call accepted!');
+                incomingCallModal.classList.add('hidden'); // Hide incoming modal
+                activeTwilioConnection = connection; // Set active connection
+                activeCallParty.textContent = connection.parameters.From;
+                startCallTimer();
+                makeCallButton.classList.add('hidden'); // Hide make call
+                endCallButton.classList.remove('hidden'); // Show end call
+            });
+
+            connection.on('reject', () => {
+                console.log('Incoming call rejected!');
+                incomingCallModal.classList.add('hidden');
+                resetCallUI();
+                showCallStatus('Incoming call rejected.', 'info');
+            });
+
+            connection.on('cancel', () => {
+                console.log('Incoming call canceled by caller.');
+                incomingCallModal.classList.add('hidden');
+                resetCallUI();
+                showCallStatus('Incoming call canceled by caller.', 'info');
+            });
+
+            connection.on('disconnect', () => {
+                console.log('Incoming call disconnected.');
+                incomingCallModal.classList.add('hidden');
+                resetCallUI();
+                showCallStatus('Incoming call disconnected.', 'info');
+            });
+
+            connection.on('error', (error) => {
+                console.error('Incoming call error:', error);
+                incomingCallModal.classList.add('hidden');
+                resetCallUI();
+                showCallStatus(`Incoming call error: ${error.message}`, 'error');
+            });
+        });
+
+        // Make Outgoing Call Button Click (using Twilio Client)
+        makeCallButton.addEventListener('click', () => {
+            if (Twilio.Device.status() !== 'ready') { // Corrected check
+                showCallStatus('Twilio Device is not ready. Please register first.', 'warning');
+                return;
+            }
+
+            const phoneNumber = dialInput.value.trim();
+            if (!phoneNumber) {
+                showCallStatus('Please enter a number to call.', 'warning');
+                return;
+            }
+            if (activeTwilioConnection) {
+                 showCallStatus('A call is already active. End the current call first.', 'warning');
+                 return;
+            }
+
+
+            try {
+                console.log('Making outgoing call to:', phoneNumber);
+                activeCallParty.textContent = phoneNumber; // Set party for active call modal
+                activeCallStatus.textContent = 'Calling...';
+                activeCallModal.classList.remove('hidden'); // Show active call modal
+                activeCallDurationTime.textContent = '00:00'; // Reset duration
+
+                // Parameters can be passed to the TwiML App's VoiceUrl
+                activeTwilioConnection = Twilio.Device.connect({ To: phoneNumber });
+
+                // Event listeners for the outgoing connection
+                activeTwilioConnection.on('accept', () => {
+                    console.log('Outgoing call accepted!');
+                    startCallTimer();
+                    makeCallButton.classList.add('hidden');
+                    endCallButton.classList.remove('hidden');
+                    activeCallStatus.textContent = 'Connected';
+                });
+
+                activeTwilioConnection.on('disconnect', () => {
+                    console.log('Outgoing call disconnected.');
+                    resetCallUI();
+                    showCallStatus('Call ended.', 'info');
+                });
+
+                activeTwilioConnection.on('cancel', () => {
+                    console.log('Outgoing call canceled.');
+                    resetCallUI();
+                    showCallStatus('Call canceled.', 'info');
+                });
+
+                activeTwilioConnection.on('error', (error) => {
+                    console.error('Outgoing call error:', error);
+                    resetCallUI();
+                    showCallStatus(`Call error: ${error.message}`, 'error');
+                });
+
+            } catch (error) {
+                console.error('Error connecting Twilio Device:', error);
+                showCallStatus(`Error connecting: ${error.message}`, 'error');
+                resetCallUI();
+            }
+        });
+
+        // End Call Button Click (for active outgoing or incoming calls) - Main UI
+        endCallButton.addEventListener('click', () => {
+            if (activeTwilioConnection) {
+                console.log('Disconnecting active call from main UI...');
+                activeTwilioConnection.disconnect(); // Disconnect the call
+                showCallStatus('Call disconnecting...', 'info');
+            } else {
+                showCallStatus('No active call to end.', 'warning');
+            }
+        });
+
+        // Answer Incoming Call Button
+        answerIncomingCallButton.addEventListener('click', () => {
+            if (incomingTwilioConnection) {
+                console.log('Answering incoming call...');
+                incomingTwilioConnection.accept(); // Accept the call via Twilio Client SDK
+            }
+        });
+
+        // Reject Incoming Call Button
+        rejectIncomingCallButton.addEventListener('click', () => {
+            if (incomingTwilioConnection) {
+                console.log('Rejecting incoming call...');
+                incomingTwilioConnection.reject(); // Reject the call via Twilio Client SDK
+            }
+        });
+
+        // Disconnect button on the active call modal
+        disconnectActiveCallButton.addEventListener('click', () => {
+            if (activeTwilioConnection) {
+                console.log('Disconnecting active call from modal...');
+                activeTwilioConnection.disconnect(); // Disconnect the call
+                showCallStatus('Call disconnecting...', 'info');
+            } else {
+                showCallStatus('No active call to end.', 'warning');
+            }
+        });
+
+        // --- Call Log Section (remains for historical calls) ---
+        async function fetchCallLogs() {
+            try {
+                callLogsContainer.innerHTML = '<p class="text-center text-gray-500">Loading call logs...</p>';
+                const response = await fetch('/call-logs');
+                const callLogs = await response.json();
+
+                if (callLogs.length === 0) {
+                    callLogsContainer.innerHTML = '<p class="text-center text-gray-500">No call history yet.</p>';
+                } else {
+                    callLogsContainer.innerHTML = ''; // Clear loading message
+                    callLogs.forEach(log => {
+                        const logType = log.type === 'incoming' ? 'incoming-call-log-card' : 'outgoing-call-log-card';
+                        const durationText = log.duration > 0 ? `Duration: ${String(Math.floor(log.duration / 60)).padStart(2, '0')}:${String(log.duration % 60).padStart(2, '0')}` : '';
+                        const partyInfo = log.type === 'incoming' ? `From: ${log.from}` : `To: ${log.to}`;
+                        const callLogCard = `
+                            <div class="call-log-card ${logType} p-4 rounded-lg shadow-sm">
+                                <p class="text-md font-semibold text-gray-800">${partyInfo}</p>
+                                <p class="text-sm text-gray-600">Status: <span class="font-medium capitalize">${log.status}</span></p>
+                                ${durationText ? `<p class="text-sm text-gray-600">${durationText}</p>` : ''}
+                                <p class="text-xs text-gray-500 mt-1">SID: ${log.callSid}</p>
+                                <p class="text-xs text-gray-500">${log.timestamp}</p>
+                            </div>
+                        `;
+                        callLogsContainer.innerHTML += callLogCard;
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching call logs:', error);
+                callLogsContainer.innerHTML = '<p class="text-center text-red-500">Error loading call history. Please try again.</p>';
+            }
+        }
+
+        // Refresh Call Logs Button
+        refreshCallLogsButton.addEventListener('click', fetchCallLogs);
+
+
+        // Initial Device Setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // No automatic device setup on load, user has to click "Register Device"
+            // to allow for explicit microphone permission handling.
+            fetchCallLogs(); // Still fetch logs on load
+        });
+
+        // Register Device Button
+        registerDeviceButton.addEventListener('click', initializeTwilioDevice);
+    </script>
+</body>
+</html>

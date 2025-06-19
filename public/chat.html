@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen">
+
+    <div id="navbar"></div>
+
+    <div class="bg-blue-600 text-white p-4 text-xl font-bold">Chat Room</div>
+
+    <div class="flex-1 flex overflow-hidden">
+        <div class="w-1/4 bg-gray-200 p-4 overflow-y-auto" id="userList">
+            <h2 class="font-semibold mb-2">Active Users</h2>
+            <ul id="users" class="space-y-1"></ul>
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <div id="messages" class="flex-1 p-4 overflow-y-auto"></div>
+
+            <div class="p-4 bg-white flex items-center space-x-2">
+                <input id="messageInput" type="text" class="flex-1 border rounded px-3 py-2" placeholder="Type your message...">
+                <input id="fileInput" type="file" class="border rounded px-2 py-1">
+                <button id="sendBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Send</button>
+            </div>
+        </div>
+    </div>
+    <script src="/js/navbar.js"></script>
+    <script src="/js/socket.js"></script>
+    <script src="/js/chat.js"></script>
+</body>
+</html>

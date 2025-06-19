@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Email App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and readability */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #main-app-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            /* max-width: 1200px; /* Increased max width for two panels */
+            display: flex; /* Use flexbox for layout */
+            min-height: 80vh; /* Minimum height for the app container */
+            overflow: hidden; /* Prevent content from overflowing rounded corners */
+        }
+
+        #sidebar {
+            width: 250px; /* Fixed width sidebar */
+            background-color: #f8f9fa; /* Lighter background for sidebar */
+            border-right: 1px solid #e0e2e5;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Spacing between sidebar items */
+        }
+
+        #content-area {
+            flex-grow: 1; /* Takes remaining space */
+            padding: 30px;
+            overflow-y: auto; /* Enable scrolling for content if needed */
+        }
+
+        /* Styles for email list items */
+        .email-item {
+            border-bottom: 1px solid #e0e2e5;
+            padding: 15px 0;
+            /* No cursor or hover for now as there's no email detail view */
+            /* cursor: pointer; */
+            /* transition: background-color 0.2s ease; */
+        }
+        /* .email-item:hover {
+            background-color: #f8f9fa;
+        } */
+        .email-item:last-child {
+            border-bottom: none;
+        }
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .email-from {
+            font-weight: 600;
+            color: #2d3748; /* Dark gray */
+            font-size: 1.05rem;
+        }
+        .email-subject {
+            font-weight: 500;
+            color: #4a5568; /* Slightly lighter dark gray */
+            font-size: 1rem;
+        }
+        .email-date {
+            font-size: 0.85rem;
+            color: #718096; /* Medium gray */
+            white-space: nowrap; /* Prevent date from wrapping */
+        }
+        .email-snippet {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+        .attachment-list {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Space between icon, filename, and button */
+            margin-top: 5px;
+            background-color: #f3f4f6; /* Light background for attachment item */
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+        .attachment-download-btn {
+            padding: 4px 10px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.2s;
+            text-decoration: none; /* For anchor tags */
+        }
+        .attachment-download-btn:hover {
+            background-color: #45a049; /* Darker green */
+        }
+
+        /* Loading and message box styles */
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message-box {
+            background-color: #fff3cd; /* Light yellow for warnings */
+            color: #856404; /* Dark yellow text */
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #main-app-container {
+                flex-direction: column; /* Stack panels vertically on smaller screens */
+                min-height: unset; /* Allow height to adjust */
+            }
+            #sidebar {
+                width: 100%; /* Full width sidebar */
+                border-right: none;
+                border-bottom: 1px solid #e0e2e5; /* Add bottom border */
+                padding: 15px;
+                flex-direction: row; /* Buttons in a row */
+                justify-content: center;
+                gap: 10px;
+            }
+            #content-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+    <br>
+    <div id="main-app-container">
+        
+
+        <!-- Left Sidebar / Navigation -->
+        <div id="sidebar">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 hidden md:block">
+                <span class="inline-block align-middle mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-4 5a4 4 0 11-8 0H3v5a2 2 0 002 2h14a2 2 0 002-2v-5h-4z" />
+                    </svg>
+                </span>
+                Mail App
+            </h2>
+
+            <!-- Navigation Buttons -->
+            <button id="inboxNavButton" class="
+                w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md
+                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75
+                transition duration-300 ease-in-out transform hover:scale-105 active
+            ">
+                <span class="inline-block align-middle mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0116 0V3a1 1 0 112 0v2.101a9.002 9.002 0 01-18 0V3a1 1 0 011-1zM6 10a1 1 0 11-2 0 1 1 0 012 0zm7-3a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.685 14.86L5 13h2l-.715 2.145A7.002 7.002 0 0110 10a7.002 7.002 0 01-5.315 4.86zm6.643-1.423a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                Inbox
+            </button>
+
+            <button id="composeNavButton" class="
+                w-full px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md
+                hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75
+                transition duration-300 ease-in-out transform hover:scale-105
+            ">
+                <span class="inline-block align-middle mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-6.793 6.793l-2.828 2.828.793.793A2 2 0 005.105 17.5l2.828-2.828-.793-.793z" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.685 14.86L5 13h2l-.715 2.145A7.002 7.002 0 0110 10a7.002 7.002 0 01-5.315 4.86zm6.643-1.423a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                Compose Email
+            </button>
+
+            <!-- Refresh button for Inbox, positioned within sidebar -->
+            <button id="refreshInboxButton" class="
+                w-full px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md
+                hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75
+                transition duration-300 ease-in-out transform hover:scale-105 mt-auto
+            ">
+                <span class="inline-block align-middle mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0116 0V3a1 1 0 112 0v2.101a9.002 9.002 0 01-18 0V3a1 1 0 011-1zM6 10a1 1 0 11-2 0 1 1 0 012 0zm7-3a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.685 14.86L5 13h2l-.715 2.145A7.002 7.002 0 0110 10a7.002 7.002 0 01-5.315 4.86zm6.643-1.423a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                Refresh Inbox
+            </button>
+        </div>
+
+        <!-- Right Content Area -->
+        <div id="content-area">
+            <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">
+                <span id="contentTitle">Inbox</span>
+            </h1>
+
+            <div id="loadingIndicator" class="loading-spinner"></div>
+            <div id="errorMessage" class="message-box bg-red-100 border-red-400 text-red-700" role="alert"></div>
+
+            <!-- Inbox View -->
+            <div id="inboxView" class="space-y-4">
+                <div id="inboxContainer" class="divide-y divide-gray-200">
+                    <!-- Emails will be loaded here -->
+                    <p class="text-center text-gray-500 py-10" id="initialMessage">Loading your inbox...</p>
+                </div>
+            </div>
+
+            <!-- Compose Email View -->
+            <div id="composeView" class="hidden">
+                <form id="emailForm" class="space-y-4">
+                    <div>
+                        <label for="to" class="block text-sm font-medium text-gray-700">To:</label>
+                        <input type="email" id="to" name="to" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="recipient@example.com" required>
+                    </div>
+                    <div>
+                        <label for="subject" class="block text-sm font-medium text-gray-700">Subject:</label>
+                        <input type="text" id="subject" name="subject" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Email Subject">
+                    </div>
+                    <div>
+                        <label for="body" class="block text-sm font-medium text-gray-700">Message:</label>
+                        <textarea id="body" name="text" rows="10" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Your email message..."></textarea>
+                    </div>
+                    <div>
+                        <label for="attachment" class="block text-sm font-medium text-gray-700">Choose Attachment:</label>
+                        <input type="file" id="attachment" name="attachment" class="mt-1 block w-full text-sm text-gray-500
+                               file:mr-4 file:py-2 file:px-4
+                               file:rounded-full file:border-0
+                               file:text-sm file:font-semibold
+                               file:bg-blue-50 file:text-blue-700
+                               hover:file:bg-blue-100"/>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="
+                            px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md
+                            hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75
+                            transition duration-300 ease-in-out transform hover:scale-105
+                        ">
+                            <span class="inline-block align-middle mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l.684-.23a1 1 0 00.515-.429l1.157-1.393L8 13v-2a1 1 0 011-1h2a1 1 0 011 1v2l1.605 1.605 1.157 1.393a1 1 0 00.515.429l.684.23a1 1 0 001.169-1.409l-7-14z" />
+                                </svg>
+                            </span>
+                            Send Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="/js/navbar.js"></script>
+    <script src="/js/email-inbox.js"></script>
+    <script src="/js/email-send.js"></script>
+
+</body>
+</html>

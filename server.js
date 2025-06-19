@@ -19,6 +19,8 @@ const smsRoutes = require('./routes/sms');
 // Controllers
 //const loginController = require('./controllers/loginController');
 //const chatController = require('./controllers/chatController');
+const callController = require('./controllers/callController');
+
 
 dotenv.config();
 const app = express();
@@ -56,7 +58,33 @@ app.use(bodyParser.urlencoded({ extended: true })); // try false
 //app.use('/email', emailRoutes);
 app.use('/sms', smsRoutes);
 //app.use('/chat', chatRoutes);
-//app.use('/voice', voiceRoutes);
+
+
+
+// Twilio Client Access Token Endpoint
+app.get('/token', callController.generateAccessToken);
+
+// Endpoint for incoming calls to the browser client (from your Twilio Phone Number's TwiML App)
+app.post('/voice-for-client', callController.voiceForClient);
+
+// NEW: Endpoint for browser-initiated outgoing calls (configured in your TwiML App)
+//app.post('/voice-outbound-client-twiml', callController.outboundCallClientTwiML);
+
+// Endpoint for server-initiated outgoing call TwiML (used by client.calls.create)
+app.post('/voice-outbound-twiml', callController.outboundCallTwiML);
+
+// Endpoint for initiating server-side calls (from your frontend via AJAX)
+// NOTE: Your frontend is NOT currently using this for calls, only browser-initiated.
+// If you plan to have a button for server-initiated calls, this is where it lands.
+app.post('/make-call', callController.makeCall);
+
+// Endpoint for ending server-side calls
+app.post('/end-call', callController.endCall);
+
+// Endpoint to retrieve call logs
+app.get('/call-logs', callController.getCallLogs);
+
+
 
 // Socket handling
 //chatController.attachSocketHandlers(io, loginController.users);

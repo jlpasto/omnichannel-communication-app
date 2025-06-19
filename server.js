@@ -9,13 +9,13 @@ const bodyParser = require('body-parser');
 
 const loginRoutes = require('./routes/login');
 const emailRoutes = require('./routes/email');
-const smsRoutes = require('./routes/sms');
-const voiceRoutes = require('./routes/voice');
-const uploadRoutes = require('./routes/upload');
+//const smsRoutes = require('./routes/sms');
+//const voiceRoutes = require('./routes/voice');
+//const uploadRoutes = require('./routes/upload');
 
 // Controllers
 const loginController = require('./controllers/loginController');
-const chatController = require('./controllers/chatController');
+//const chatController = require('./controllers/chatController');
 
 dotenv.config();
 const app = express();
@@ -49,14 +49,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
 app.use('/login', loginRoutes);
-app.use('/upload', uploadRoutes); 
+//app.use('/upload', uploadRoutes); 
 app.use('/email', emailRoutes);
 //app.use('/sms', smsRoutes);
 //app.use('/chat', chatRoutes);
 //app.use('/voice', voiceRoutes);
 
 // Socket handling
-chatController.attachSocketHandlers(io, loginController.users);
+//chatController.attachSocketHandlers(io, loginController.users);
 
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

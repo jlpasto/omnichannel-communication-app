@@ -70,17 +70,17 @@ async function getEmailsFromInbox(imapInstance, daysAgo = 1, markAsSeen = false,
             // Calculate the date for the search criteria (e.g., 1 day ago)
             const searchDateObj = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
             //const searchDateString = formatDateForImapSearch(searchDateObj);
-            const searchDateString = "15-Jun-2025";
-            console.log(`Searching for emails SINCE: ${searchDateString}`);
+            //const searchDateString = "15-Jun-2025";
+            //console.log(`Searching for emails SINCE: ${searchDateString}`);
             
             // Perform the IMAP search
             // ['ALL'] or ['SINCE', searchDateString]
             const searchCriteria = [
-                //'ALL',
+                'ALL'
                 //'SEEN',
                 //'UNSEEN',
-                ['FROM', 'jhonloydpastorin.030303@gmail.com'],
-                ['BEFORE', 'June 21, 2025']
+               // ['FROM', 'jhonloydpastorin.030303@gmail.com'],
+               // ['BEFORE', 'June 21, 2025']
             ];
             imapInstance.search(searchCriteria, (searchErr, uids) => {
                 if (searchErr) {
@@ -155,6 +155,7 @@ async function getEmailsFromInbox(imapInstance, daysAgo = 1, markAsSeen = false,
                                 text: parsed.text ? parsed.text.substring(0, 500) + (parsed.text.length > 500 ? '...' : '') : 'No plain text body.',
                                 html: parsed.html ? parsed.html.substring(0, 500) + (parsed.html.length > 500 ? '...' : '') : 'No HTML body.',
                                 attachments: attachmentsData // Array of attachment objects
+                                
                             });
 
                         } catch (parseError) {

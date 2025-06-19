@@ -11,8 +11,6 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f0f2f5; /* Light gray background */
-            display: flex;
-            justify-content: center;
             min-height: 100vh; /* Ensure it takes full viewport height */
             padding: 20px;
             box-sizing: border-box;
@@ -22,7 +20,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             width: 100%;
-            max-width: 1200px; /* Increased max width for two panels */
+            /* max-width: 1200px; /* Increased max width for two panels */
             display: flex; /* Use flexbox for layout */
             min-height: 80vh; /* Minimum height for the app container */
             overflow: hidden; /* Prevent content from overflowing rounded corners */
@@ -161,7 +159,11 @@
     </style>
 </head>
 <body>
+    <div id="navbar"></div>
+    <br>
     <div id="main-app-container">
+        
+
         <!-- Left Sidebar / Navigation -->
         <div id="sidebar">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 hidden md:block">
@@ -277,7 +279,7 @@
             </div>
         </div>
     </div>
-
+    <script src="/js/navbar.js"></script>
     <script src="/js/email-inbox.js"></script>
     <script src="/js/email-send.js"></script>
 

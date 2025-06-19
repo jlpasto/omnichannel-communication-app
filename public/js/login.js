@@ -1,7 +1,6 @@
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
-    alert("Login Clicked");
     
     try {
         const res = await fetch("/login", {
@@ -12,7 +11,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 
         if (res.ok) {
             localStorage.setItem("username", username);
-            window.location.href = "/chat.html";
+            window.location.href = "/home.html";
         } else {
             document.getElementById("error").classList.remove("hidden");
         }

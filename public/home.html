@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .welcome-text {
+            font-size: 4em; /* Adjust as needed for "big text" */
+            font-weight: bold;
+            margin-bottom: 50px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two columns */
+            gap: 30px; /* Space between buttons */
+            max-width: 800px;
+            width: 90%;
+            margin: auto;
+        }
+
+        .action-button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            padding: 30px;
+            font-size: 1.8em;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-button:hover {
+            background-color: #45a049;
+            transform: translateY(-5px);
+        }
+
+        .action-button i {
+            font-size: 3em; /* Icon size */
+            margin-bottom: 15px;
+        }
+
+        /* Specific button colors */
+        .chat-button { background-color: #007bff; } /* Blue */
+        .chat-button:hover { background-color: #0056b3; }
+
+        .email-button { background-color: #dc3545; } /* Red */
+        .email-button:hover { background-color: #c82333; }
+
+        .voice-button { background-color: #ffc107; color: #333;} /* Yellow */
+        .voice-button:hover { background-color: #e0a800; }
+
+        .sms-button { background-color: #17a2b8; } /* Cyan */
+        .sms-button:hover { background-color: #138496; }
+
+        @media (max-width: 768px) {
+            .welcome-text {
+                font-size: 2.5em;
+                margin-bottom: 30px;
+            }
+            .button-container {
+                grid-template-columns: 1fr; /* Single column on smaller screens */
+                gap: 20px;
+            }
+            .action-button {
+                padding: 20px;
+                font-size: 1.5em;
+            }
+            .action-button i {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+<div id="navbar"></div>
+<br>
+<div id="body">
+
+
+    <div class="welcome-text">
+        Welcome, User!
+    </div>
+
+    <div class="button-container">
+        <a href="chat.html" class="action-button chat-button">
+            <i class="fas fa-comments"></i>
+            Chat
+        </a>
+        <a href="email.html" class="action-button email-button">
+            <i class="fas fa-envelope"></i>
+            Email
+        </a>
+        <a href="voice.html" class="action-button voice-button">
+            <i class="fas fa-phone-alt"></i>
+            Voice
+        </a>
+        <a href="sms.html" class="action-button sms-button">
+            <i class="fas fa-sms"></i>
+            SMS
+        </a>
+    </div>
+</div>
+    <script src="/js/navbar.js"></script>
+    <script>
+        const username = localStorage.getItem("username");
+        document.querySelector('.welcome-text').textContent = `Welcome, ${username}!`;
+
+    </script>
+    <script>
+        document.addEventListener('load', function() {
+
+        const username = localStorage.getItem("username");
+        const loginLink = document.getElementById("login"); // Renamed 'login' to 'loginLink' to avoid conflict with variable name 'login' in other contexts
+        console.log(username);
+        if (username) {
+            console.log("Pasok");
+            loginLink.innerHTML = "Logout";
+            loginLink.href = "#"; // Change href for logout action
+            loginLink.addEventListener("click", (event) => {
+                event.preventDefault(); // Prevent default link behavior
+                localStorage.removeItem("username"); // Clear the username
+                alert("You have been logged out!"); // Or display a better message
+                window.location.href = "home.html"; // Redirect to home page after logout
+                // Or reload the current page to reflect the change: window.location.reload();
+            });
+        } else {
+            loginLink.innerHTML = "Login";
+            loginLink.href = "login.html"; // Ensure this goes to your login page
+            // No specific click listener needed here unless you want to prevent default and handle login via JS
+        }
+    });
+
+    </script>
+</body>
+</html>

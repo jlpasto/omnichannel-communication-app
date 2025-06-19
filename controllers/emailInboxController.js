@@ -60,52 +60,52 @@ function formatDateForImapSearch(date) {
  */
 async function getEmailsFromInbox(imapInstance, daysAgo = 1, markAsSeen = false, limit = 10) {
     return new Promise((resolve, reject) => {
-        imapInstance.openBox('INBOX', !markAsSeen, (err, box) => { // Open in read-write if marking as seen
+        imapInstance.openBox('INBOX', markAsSeen, (err, box) => { // Open in read-write if marking as seen
             if (err) {
                 console.error('Error opening INBOX:', err);
                 return reject(err);
             }
             console.log(`Successfully opened INBOX with ${box.messages.total} messages.`);
 
-            // Calculate the date for the search criteria (e.g., 1 day ago)
+            // Calculate the date for the search criteria
             const searchDateObj = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-            //const searchDateString = formatDateForImapSearch(searchDateObj);
-            //const searchDateString = "15-Jun-2025";
-            //console.log(`Searching for emails SINCE: ${searchDateString}`);
-            
+            //const searchDateString = formatDateForImapSearch(searchDateObj); // Using helper for dynamic date
+            const searchDateString = "19-Jun-2025";
             // Perform the IMAP search
-            // ['ALL'] or ['SINCE', searchDateString]
             const searchCriteria = [
-                'ALL'
-                //'SEEN',
-                //'UNSEEN',
-               // ['FROM', 'jhonloydpastorin.030303@gmail.com'],
-               // ['BEFORE', 'June 21, 2025']
+                ['SINCE', searchDateString] // Using the dynamically calculated date
             ];
+
+            // If you want to strictly search for unseen messages:
+            // searchCriteria.push('UNSEEN');
+
+            // If you want to filter by sender:
+            // searchCriteria.push(['FROM', 'jhonloydpastorin.030303@gmail.com']);
+
+
             imapInstance.search(searchCriteria, (searchErr, uids) => {
                 if (searchErr) {
                     console.error('IMAP search error:', searchErr);
                     return reject(searchErr);
                 }
-                
+
                 if (!uids || uids.length === 0) {
                     console.log('No messages found matching criteria.');
                     return resolve([]); // Resolve with empty array if no messages
                 }
 
-                console.log(`Found ${uids.length} messages. Fetching full bodies and structures...`);
-
                 // Sort UIDs in descending order to get the most recent ones first
-                // UIDs generally increment, so higher UIDs are more recent.
-                //uids.sort((a, b) => b - a);
+                // (UIDs generally increment, so higher UIDs are more recent)
+                uids.sort((a, b) => b - a);
 
-                // Limit the number of UIDs to fetch
-                //const uidsToFetch = uids.slice(0, limit);
-                //console.log(`Found ${uids.length} messages. Fetching top ${uidsToFetch.length} most recent...`);
+                // Limit the number of UIDs to fetch if a limit is provided
+                const uidsToFetch = uids.slice(0, limit);
+                console.log(`Found ${uids.length} messages. Fetching top ${uidsToFetch.length} most recent...`);
 
-                const fetchedEmails = [];
-                // Fetch full message bodies and structures to get attachments for the limited UIDs
-                const f = imapInstance.fetch(uids, { // Use uidsToFetch here
+                const messageParsingPromises = []; // Array to hold promises for each message's parsing
+
+                // Fetch full message bodies and structures for the limited UIDs
+                const f = imapInstance.fetch(uidsToFetch, {
                     bodies: '', // Fetches the entire message body (headers + content)
                     struct: true, // Needed to get structure information for attachments
                     markSeen: markAsSeen // Mark messages as seen after fetching
@@ -115,76 +115,92 @@ async function getEmailsFromInbox(imapInstance, daysAgo = 1, markAsSeen = false,
                     console.log(`\n--- Processing Message #${seqno} (UID: ${msg.uid}) ---`);
                     let rawEmailBuffer = Buffer.from(''); // Buffer to accumulate raw email data
 
-                    // Collect the entire message body stream
-                    msg.on('body', function (stream, info) {
-                        stream.on('data', function (chunk) {
-                            rawEmailBuffer = Buffer.concat([rawEmailBuffer, chunk]);
+                    // Create a new Promise for each message to ensure parsing completes
+                    const currentMessagePromise = new Promise(async (resolveMsg, rejectMsg) => {
+                        // Collect the entire message body stream
+                        msg.on('body', function (stream, info) {
+                            stream.on('data', function (chunk) {
+                                rawEmailBuffer = Buffer.concat([rawEmailBuffer, chunk]);
+                            });
+                            stream.once('end', function () {
+                                console.log(`Finished collecting body stream for message #${seqno}.`);
+                            });
                         });
-                        stream.once('end', function () {
-                            console.log(`Finished collecting body stream for message #${seqno}.`);
-                        });
-                    });
 
-                    msg.once('end', async function () {
-                        console.log(`Finished fetching all parts for message #${seqno}. Parsing...`);
-                        try {
-                            const parsed = await simpleParser(rawEmailBuffer);
+                        msg.once('end', async function () {
+                            console.log(`Finished fetching all parts for message #${seqno}. Parsing...`);
+                            try {
+                                const parsed = await simpleParser(rawEmailBuffer);
 
-                            const attachmentsData = [];
-                            if (parsed.attachments && parsed.attachments.length > 0) {
-                                parsed.attachments.forEach(att => {
-                                    attachmentsData.push({
-                                        filename: att.filename || 'untitled',
-                                        contentType: att.contentType,
-                                        size: att.size,
-                                        // Convert attachment content (Buffer) to Base64 string
-                                        content: att.content.toString('base64')
+                                const attachmentsData = [];
+                                if (parsed.attachments && parsed.attachments.length > 0) {
+                                    parsed.attachments.forEach(att => {
+                                        attachmentsData.push({
+                                            filename: att.filename || 'untitled',
+                                            contentType: att.contentType,
+                                            size: att.size,
+                                            // Convert attachment content (Buffer) to Base64 string for easier transfer/storage
+                                            content: att.content.toString('base64')
+                                        });
                                     });
+                                    console.log(`Attachments found for #${seqno}: ${attachmentsData.map(a => a.filename).join(', ')}`);
+                                } else {
+                                    console.log(`No attachments found for #${seqno}.`);
+                                }
+
+                                // Resolve this individual message's promise with its parsed data
+                                resolveMsg({
+                                    uid: msg.uid,
+                                    from: parsed.from ? parsed.from.text : 'N/A',
+                                    to: parsed.to ? parsed.to.text : 'N/A',
+                                    subject: parsed.subject || 'N/A',
+                                    date: parsed.date ? parsed.date.toISOString() : 'N/A', // ISO string for easy client-side parsing
+                                    text: parsed.text ? parsed.text.substring(0, 500) + (parsed.text.length > 500 ? '...' : '') : 'No plain text body.',
+                                    html: parsed.html ? parsed.html.substring(0, 500) + (parsed.html.length > 500 ? '...' : '') : 'No HTML body.',
+                                    attachments: attachmentsData // Array of attachment objects
                                 });
-                                console.log(`Attachments found for #${seqno}: ${attachmentsData.map(a => a.filename).join(', ')}`);
-                            } else {
-                                console.log(`No attachments found for #${seqno}.`);
+
+                            } catch (parseError) {
+                                console.error(`Error parsing email with mailparser for message #${seqno}:`, parseError);
+                                // If parsing fails, resolve with a placeholder to prevent Promise.all from failing
+                                resolveMsg({
+                                    uid: msg.uid,
+                                    from: 'N/A',
+                                    to: 'N/A',
+                                    subject: `Error parsing email #${seqno}`,
+                                    date: new Date().toISOString(),
+                                    text: `Could not parse this email: ${parseError.message}`,
+                                    html: '',
+                                    attachments: []
+                                });
                             }
-
-                            fetchedEmails.push({
-                                uid: msg.uid,
-                                from: parsed.from ? parsed.from.text : 'N/A',
-                                to: parsed.to ? parsed.to.text : 'N/A',
-                                subject: parsed.subject || 'N/A',
-                                date: parsed.date ? parsed.date.toISOString() : 'N/A', // ISO string for easy client-side parsing
-                                text: parsed.text ? parsed.text.substring(0, 500) + (parsed.text.length > 500 ? '...' : '') : 'No plain text body.',
-                                html: parsed.html ? parsed.html.substring(0, 500) + (parsed.html.length > 500 ? '...' : '') : 'No HTML body.',
-                                attachments: attachmentsData // Array of attachment objects
-                                
-                            });
-
-                        } catch (parseError) {
-                            console.error(`Error parsing email with mailparser for message #${seqno}:`, parseError);
-                            // Push a placeholder email if parsing fails
-                            fetchedEmails.push({
-                                uid: msg.uid,
-                                from: 'N/A',
-                                to: 'N/A',
-                                subject: `Error parsing email #${seqno}`,
-                                date: new Date().toISOString(),
-                                text: `Could not parse this email: ${parseError.message}`,
-                                html: '',
-                                attachments: []
-                            });
-                        }
+                        });
                     });
+                    messageParsingPromises.push(currentMessagePromise); // Add the promise to the array
                 });
 
                 f.once('error', function (fetchErr) {
                     console.error('Fetch error:', fetchErr);
+                    // Reject the main promise if there's an error during the IMAP fetch operation
                     reject(fetchErr);
                 });
 
                 f.once('end', function () {
-                    console.log('Done fetching all messages in batch!');
-                    // Sort emails by date, most recent first
-                    fetchedEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    resolve(fetchedEmails);
+                    console.log('Done fetching all messages in batch from IMAP server. Waiting for parsing to complete...');
+                    // Once all raw message streams are fetched, wait for all individual parsing promises to resolve
+                    Promise.all(messageParsingPromises)
+                        .then(allParsedEmails => {
+                            console.log('All messages parsed. Resolving getEmailsFromInbox.');
+                            // Sort emails by date, most recent first, after all are parsed
+                            allParsedEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            resolve(allParsedEmails);
+                        })
+                        .catch(err => {
+                            // This catch would only be hit if one of the individual message promises explicitly rejected,
+                            // but our current implementation resolves even on parse error with a placeholder.
+                            console.error('Unexpected error in Promise.all for email parsing:', err);
+                            reject(err);
+                        });
                 });
             });
         });
@@ -244,7 +260,7 @@ exports.receiveEmail = async (daysAgo = 1, markAsSeen = true, limit = 10) => {
             try {
                 // Get emails from the specified days ago, and mark them as seen.
                 const fetchedEmails = await getEmailsFromInbox(mailServer, daysAgo, markAsSeen, limit);
-                
+
                 console.log('\n--- FETCHED EMAILS SUMMARY ---');
                 if (fetchedEmails.length > 0) {
                     fetchedEmails.forEach((email, index) => {

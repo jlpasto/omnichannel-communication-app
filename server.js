@@ -8,17 +8,15 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 
 
-//const loginRoutes = require('./routes/login');
-//const emailRoutes = require('./routes/email');
-//const smsRoutes = require('./routes/sms');
-//const voiceRoutes = require('./routes/voice');
-//const uploadRoutes = require('./routes/upload');
+const loginRoutes = require('./routes/login');
+const emailRoutes = require('./routes/email');
 const smsRoutes = require('./routes/sms');
+const uploadRoutes = require('./routes/upload');
 
 
 // Controllers
-//const loginController = require('./controllers/loginController');
-//const chatController = require('./controllers/chatController');
+const loginController = require('./controllers/loginController');
+const chatController = require('./controllers/chatController');
 const callController = require('./controllers/callController');
 
 
@@ -53,14 +51,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // try false
 
 // Routes
-//app.use('/login', loginRoutes);
-//app.use('/upload', uploadRoutes); 
-//app.use('/email', emailRoutes);
+app.use('/login', loginRoutes);
+app.use('/upload', uploadRoutes); 
+app.use('/email', emailRoutes);
 app.use('/sms', smsRoutes);
-//app.use('/chat', chatRoutes);
 
-
-
+// VOICE Routes
 // Twilio Client Access Token Endpoint
 app.get('/token', callController.generateAccessToken);
 
@@ -87,7 +83,7 @@ app.get('/call-logs', callController.getCallLogs);
 
 
 // Socket handling
-//chatController.attachSocketHandlers(io, loginController.users);
+chatController.attachSocketHandlers(io, loginController.users);
 
 server.listen(PORT, () => {
     console.log(`SMS App listening at http://localhost:${PORT}`);

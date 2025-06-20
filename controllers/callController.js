@@ -78,40 +78,53 @@ exports.voiceForClient = (req, res) => {
     const callStatus = req.body.CallStatus; // e.g., 'ringing', 'in-progress'
     const timestamp = new Date().toLocaleString();
 
+    console.log("Voiceforclient Endpoint called");
     console.log(`Incoming call webhook received for client: From=${from}, To=${to}, CallSid=${callSid}, Status=${callStatus}`);
 
-    // Update or add call to logs/active calls map
-    // This allows the frontend to poll for call status and display modals.
-    let callEntry = activeCalls.get(callSid);
-    if (!callEntry) {
-        callEntry = {
-            type: 'incoming',
-            from: from,
-            to: to,
-            callSid: callSid,
-            status: callStatus,
-            startTime: Date.now(), // Store start time
-            endTime: null,
-            duration: 0,
-            timestamp: timestamp
-        };
-        activeCalls.set(callSid, callEntry);
-        callLogs.push(callEntry); // Add to history
-    } else {
-        // Update status and calculate duration if call ends
-        callEntry.status = callStatus;
-        if (callStatus === 'completed' || callStatus === 'canceled' || callStatus === 'failed' || callStatus === 'busy' || callStatus === 'no-answer') {
-            callEntry.endTime = Date.now();
-            // Ensure startTime is set before calculating duration (important if 'in-progress' webhook was missed)
-            if (callEntry.startTime) {
-                 callEntry.duration = Math.floor((callEntry.endTime - callEntry.startTime) / 1000); // Duration in seconds
-            }
-            activeCalls.delete(callSid); // Remove from active calls map
-        }
-    }
 
-    // TwiML instruction to dial the specific browser client.
-    twiml.dial().client(BROWSER_CLIENT_IDENTITY);
+    let dial;
+    if (req.body.To && req.body.To !== twilioPhoneNumber) {
+        // Outbound call
+        dial = twiml.dial({ callerId: twilioPhoneNumber });
+        dial.number(req.body.To);
+        
+ 
+    } else {
+        // Update or add call to logs/active calls map
+        // This allows the frontend to poll for call status and display modals.
+        let callEntry = activeCalls.get(callSid);
+        if (!callEntry) {
+            callEntry = {
+                type: 'incoming',
+                from: from,
+                to: to,
+                callSid: callSid,
+                status: callStatus,
+                startTime: Date.now(), // Store start time
+                endTime: null,
+                duration: 0,
+                timestamp: timestamp
+            };
+            activeCalls.set(callSid, callEntry);
+            callLogs.push(callEntry); // Add to history
+        } else {
+            // Update status and calculate duration if call ends
+            callEntry.status = callStatus;
+            if (callStatus === 'completed' || callStatus === 'canceled' || callStatus === 'failed' || callStatus === 'busy' || callStatus === 'no-answer') {
+                callEntry.endTime = Date.now();
+                // Ensure startTime is set before calculating duration (important if 'in-progress' webhook was missed)
+                if (callEntry.startTime) {
+                    callEntry.duration = Math.floor((callEntry.endTime - callEntry.startTime) / 1000); // Duration in seconds
+                }
+                activeCalls.delete(callSid); // Remove from active calls map
+            }
+        }
+
+        // TwiML instruction to dial the specific browser client.
+        twiml.dial().client(BROWSER_CLIENT_IDENTITY);
+        }
+
+
 
     res.type('text/xml');
     res.send(twiml.toString());
@@ -149,90 +162,7 @@ exports.receiveCall = (req, res) => {
 };
 
 
-/**
- * Provides TwiML instructions for an outbound call initiated by your app's server-side REST API.
- * This is *not* used for calls made directly from the browser via Twilio Client SDK.
- * This endpoint (`/voice-outbound-twiml`) would be the `url` parameter in a `client.calls.create()` API call from your server.
- * @param {object} req - The request object from Express.
- * @param {object} res - The response object from Express.
- */
-exports.outboundCallTwiML = (req, res) => {
-    const twiml = new VoiceResponse();
-    const from = req.body.From;
-    const to = req.body.To;
-    const callSid = req.body.CallSid;
-    const callStatus = req.body.CallStatus; // e.g., 'in-progress', 'completed'
 
-    console.log(`Outbound call TwiML webhook received (server-initiated): From=${from}, To=${to}, CallSid=${callSid}, Status=${callStatus}`);
-
-    // Update active call status based on Twilio webhooks
-    let callEntry = activeCalls.get(callSid);
-    if (callEntry) {
-        callEntry.status = callStatus;
-        if (callStatus === 'in-progress' && !callEntry.startTime) {
-             callEntry.startTime = Date.now(); // Set start time when call is actually in-progress
-        }
-        if (callStatus === 'completed' || callStatus === 'failed' || callStatus === 'busy' || callStatus === 'no-answer') {
-            callEntry.endTime = Date.now();
-            if (callEntry.startTime) {
-                callEntry.duration = Math.floor((callEntry.endTime - callEntry.startTime) / 1000);
-            }
-            activeCalls.delete(callSid);
-        }
-    }
-
-    twiml.say('This is a call initiated from your server. Goodbye.');
-    twiml.hangup();
-
-    res.type('text/xml');
-    res.send(twiml.toString());
-};
-
-
-/**
- * Initiates an outgoing voice call using the Twilio REST API (server-side).
- * This is an alternative to using Twilio Client SDK for outbound calls from the browser.
- * The `url` parameter specifies the TwiML Twilio should execute when the call connects.
- * @param {object} req - The request object from Express (should contain 'to' in req.body).
- * @param {object} res - The response object from Express.
- */
-exports.makeCall = async (req, res) => {
-    const { to } = req.body; // Recipient number
-
-    if (!to) {
-        return res.status(400).json({ success: false, message: 'Recipient number is required.' });
-    }
-
-    try {
-        const call = await client.calls.create({
-            // The URL Twilio will request to get TwiML instructions for this call.
-            url: `https://c58e-158-62-5-231.ngrok-free.app/voice-outbound-twiml`,
-            to: to,
-            from: twilioPhoneNumber
-        });
-
-        // Log the call entry in our in-memory storage.
-        const newCallEntry = {
-            type: 'outgoing',
-            to: to,
-            from: twilioPhoneNumber,
-            callSid: call.sid,
-            status: call.status,
-            startTime: null,
-            endTime: null,
-            duration: 0,
-            timestamp: new Date().toLocaleString()
-        };
-        activeCalls.set(call.sid, newCallEntry);
-        callLogs.push(newCallEntry);
-
-        console.log(`Server-initiated call to ${to} (Call SID: ${call.sid}, Status: ${call.status})`);
-        res.status(200).json({ success: true, message: 'Server-initiated call successfully!', callSid: call.sid });
-    } catch (error) {
-        console.error(`Error initiating server-side call to ${to}:`, error);
-        res.status(500).json({ success: false, message: 'Failed to initiate server-side call.', error: error.message });
-    }
-};
 
 /**
  * Ends an active voice call using the Twilio API.

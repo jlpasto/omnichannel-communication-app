@@ -11,40 +11,48 @@ socket.on("authenticated", (success) => {
 socket.on("chat_message", (msg) => {
   const container = document.getElementById("messages");
   const div = document.createElement("div");
-  div.className = "mb-2";
+  // Add flexbox and justify content based on sender
+  div.className = `mb-2 flex ${msg.user === username ? 'justify-end' : 'justify-start'}`;
+
+  const messageContentDiv = document.createElement("div");
+  // Add background color and text color based on sender, and padding, rounded corners
+  messageContentDiv.className = `p-3 rounded-lg max-w-xs ${msg.user === username ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'}`;
 
   if (msg.attachment) {
     const isImage = msg.attachment.mimetype.startsWith('image/');
     if (isImage) {
-
-        if (msg.text != "") {
-            div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text} <br>
-            <img src="${msg.attachment.url}" alt="${msg.attachment.filename}" class="max-w-xs max-h-60 rounded border my-2">`;
-            
+        let imageHtml = `<img src="${msg.attachment.url}" alt="${msg.attachment.filename}" class="max-w-xs max-h-60 rounded border my-2">`;
+        if (msg.text !== "") {
+            messageContentDiv.innerHTML = `${msg.text} <br> ${imageHtml}`;
         } else {
-            div.innerHTML += `<strong>${msg.user}:</strong><br>
-            <img src="${msg.attachment.url}" alt="${msg.attachment.filename}" class="max-w-xs max-h-60 rounded border my-2">`;
+            messageContentDiv.innerHTML = imageHtml;
         }
-
-
     } else {
-
-        if (msg.text != "") {
-            div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text} <br>
-            <a href="${msg.attachment.url}" target="_blank" class="text-blue-500 underline">${msg.attachment.filename}</a>`;
-        } else {
-            div.innerHTML += `<strong>${msg.user}:</strong>
-            <a href="${msg.attachment.url}" target="_blank" class="text-blue-500 underline">${msg.attachment.filename}</a>`;
+        let fileHtml = `<a href="${msg.attachment.url}" target="_blank" class="text-blue-500 underline">${msg.attachment.filename}</a>`;
+        // Adjust text color for the link when sent by current user
+        if (msg.user === username) {
+          fileHtml = `<a href="${msg.attachment.url}" target="_blank" class="text-white underline">${msg.attachment.filename}</a>`;
         }
-
-
-        
-
+        if (msg.text !== "") {
+            messageContentDiv.innerHTML = `${msg.text} <br> ${fileHtml}`;
+        } else {
+            messageContentDiv.innerHTML = fileHtml;
+        }
     }
-    } else {
-    div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
+  } else {
+    messageContentDiv.innerHTML = msg.text;
   }
 
+  // Add username display if not the current user
+  if (msg.user !== username) {
+      const usernameSpan = document.createElement("span");
+      usernameSpan.className = "text-xs text-gray-500 mb-1"; // Small, grey text for username
+      usernameSpan.textContent = msg.user;
+      div.appendChild(usernameSpan); // Append username span before the message content div
+  }
+
+
+  div.appendChild(messageContentDiv);
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 });

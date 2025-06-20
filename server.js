@@ -57,8 +57,8 @@ app.use('/email', emailRoutes);
 app.use('/sms', smsRoutes);
 
 // Import voice routes
-const voiceRoutes = require('./routes/voice');
-app.use('/voice', voiceRoutes);
+//const voiceRoutes = require('./routes/voice');
+//app.use('/voice', voiceRoutes);
 
 
 // VOICE Routes
@@ -67,17 +67,6 @@ app.get('/token', callController.generateAccessToken);
 
 // Endpoint for incoming calls to the browser client (from your Twilio Phone Number's TwiML App)
 app.post('/voice-for-client', callController.voiceForClient);
-
-// NEW: Endpoint for browser-initiated outgoing calls (configured in your TwiML App)
-//app.post('/voice-outbound-client-twiml', callController.outboundCallClientTwiML);
-
-// Endpoint for server-initiated outgoing call TwiML (used by client.calls.create)
-app.post('/voice-outbound-twiml', callController.outboundCallTwiML);
-
-// Endpoint for initiating server-side calls (from your frontend via AJAX)
-// NOTE: Your frontend is NOT currently using this for calls, only browser-initiated.
-// If you plan to have a button for server-initiated calls, this is where it lands.
-app.post('/make-call', callController.makeCall);
 
 // Endpoint for ending server-side calls
 app.post('/end-call', callController.endCall);
@@ -92,6 +81,6 @@ chatController.attachSocketHandlers(io, loginController.users);
 
 server.listen(PORT, () => {
     console.log(`SMS App listening at http://localhost:${PORT}`);
-    console.log('Remember to use ngrok to expose this port to the internet.');
+    console.log('Remember to use ngrok to expose this port to the internet for Voice/SMS functionality.');
     console.log(`Example ngrok command: ngrok http ${PORT}`);
 });

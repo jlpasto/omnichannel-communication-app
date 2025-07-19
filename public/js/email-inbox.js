@@ -62,12 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading indicator and hide previous content/messages
         loadingIndicator.style.display = 'block';
         inboxContainer.innerHTML = ''; // Clear existing emails
-        hideMessageBox();
+        hideMessageBox(); 
         initialMessage.style.display = 'none'; // Hide initial message
 
         try {
             // Make a request to your Node.js server.
-            const response = await fetch('api/email/inbox');
+            const response = await fetch('/api/email/inbox');
                 
             if (!response.ok) {
                 const errorData = await response.json();

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Make a request to your Node.js server.
-            const response = await fetch('http://localhost:3000/email/inbox');
+            const response = await fetch('api/email/inbox');
                 
             if (!response.ok) {
                 const errorData = await response.json();

@@ -6,7 +6,7 @@ form.addEventListener('submit', async (e) => {
     console.log("Email Send Click");
     const formData = new FormData(form);
     // Replace with your actual send email endpoint
-    const response = await fetch('/email/send', {
+    const response = await fetch('api/email/send', {
         method: 'POST',
         body: formData
     });
